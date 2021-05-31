@@ -1,112 +1,33 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin } from 'obsidian';
 
-interface MyPluginSettings {
-	mySetting: string;
-}
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const timeNow = () => {
+	let d = new Date();
+	let ye:any = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(d);
+	let mo:any = new Intl.DateTimeFormat('en', { month: 'short' }).format(d);
+	let da:any = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(d);
+	let hh:any = new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false }).format(d);
+	hh = hh % 24;
+	let mm:any = parseInt(new Intl.DateTimeFormat('en', { minute: 'numeric' }).format(d));
+	mm = mm > 9 ? mm : `0${mm}`
+	let ss:any = parseInt(new Intl.DateTimeFormat('en', { second: 'numeric', hour12: false }).format(d));
+	ss = ss > 9 ? ss : `0${ss}`
+	return (`${mo} ${da} ${ye} ${hh}:${mm}:${ss}`);
 }
 
 export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
 
 	async onload() {
-		console.log('loading plugin');
 
-		await this.loadSettings();
-
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
+		this.addRibbonIcon('clock', 'Add Timestamp', async () => {
+			//add text to markdown
+			let data = await this.app.vault.adapter.read(this.app.workspace.getActiveFile().path);
+			this.app.vault.adapter.write(this.app.workspace.getActiveFile().path, `${data}\n\n${timeNow()}: `);
 		});
+
 
 		this.addStatusBarItem().setText('Status Bar Text');
-
-		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-					return true;
-				}
-				return false;
-			}
-		});
-
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
-	onunload() {
-		console.log('unloading plugin');
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		let {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
